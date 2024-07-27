@@ -9,6 +9,8 @@ from os import system as sys
 from platform import system as s_name
 from time import sleep
 from itertools import cycle
+from re import search, sub
+from json import loads
 
 from Core.Tools.HPV_Getting_File_Paths import HPV_Get_Accounts
 from Core.Tools.HPV_Proxy import HPV_Proxy_Checker
@@ -32,34 +34,45 @@ class HPV_1win:
     
     [3] - `Получение ежедневной награды`
     
-    [4] - `Апгрейд всех карточек до максимально возможно уровня`
+    [4] - `Улучшение бустов`
     
-    [5] - `1 час беспрерывного тапания`
+    [5] - `Апгрейд всех карточек до максимально возможно уровня`
     
-    [6] - `Ожидание около двух часов`
+    [6] - `1 час беспрерывного тапания`
     
-    [7] - `Повторение действий через ~2 часа`
+    [7] - `Ожидание от 1 до 3 часов`
+    
+    [8] - `Повторение действий через 1-3 часа`
     '''
 
 
 
     def __init__(self, Name: str, URL: str, Proxy: dict = None) -> None:
-        self.Name = Name                         # Ник аккаунта
-        self.URL = self.URL_Clean(URL)           # Уникальная ссылка для авторизации в mini app
-        self.Proxy = Proxy                       # Прокси (при наличии)
-        self.UA = HPV_User_Agent()               # Генерация уникального User Agent
-        self.Domain = 'https://crypto-clicker-backend-go-prod.100hp.app/'   # Домен игры
-        self.Token = self.Authentication()       # Токен аккаунта
+        INFO = self.URL_Clean(URL)
+        self.Name = Name                     # Ник аккаунта
+        self.TG_ID = INFO['ID']              # ID аккаунта
+        self.URL = INFO['URL']               # Уникальная ссылка для авторизации в mini app
+        self.Domain = INFO['Domain']         # Домен игры
+        self.Proxy = Proxy                   # Прокси (при наличии)
+        self.UA = HPV_User_Agent()           # Генерация уникального User Agent
+        self.Token = self.Authentication()   # Токен аккаунта
 
 
 
-    def URL_Clean(self, URL: str) -> str:
+    def URL_Clean(self, URL: str) -> dict:
         '''Очистка уникальной ссылки от лишних элементов'''
 
         try:
-            return {KEY: VALUE[0] for KEY, VALUE in parse_qs(unquote(unquote(unquote(URL.split('#tgWebAppData=')[1].split('&tgWebAppVersion')[0])))).items()}
+            ID = str(loads(unquote(unquote(unquote(URL.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0]))).split('&')[1].split('user=')[1])['id'])
         except:
-            return ''
+            ID = ''
+
+        try:
+            _URL = {KEY: VALUE[0] for KEY, VALUE in parse_qs(unquote(unquote(unquote(URL.split('#tgWebAppData=')[1].split('&tgWebAppVersion')[0])))).items()}
+        except:
+            _URL = ''
+
+        return {'ID': ID, 'URL': _URL, 'Domain': 'https://crypto-clicker-backend-go-prod.100hp.app/'}
 
 
 
@@ -113,7 +126,7 @@ class HPV_1win:
         '''Получение информации о балансе, прибыли в час и силе клика'''
 
         URL = self.Domain + 'user/balance'
-        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA}
+        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA, 'x-user-id': self.TG_ID}
 
         try:
             HPV = get(URL, headers=Headers, proxies=self.Proxy).json()
@@ -132,7 +145,7 @@ class HPV_1win:
         '''Выполнение заданий связанные с подписками'''
 
         URL = self.Domain + 'tasks/subscription'
-        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA}
+        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA, 'x-user-id': self.TG_ID}
 
         try:
             HPV = post(URL, headers=Headers, proxies=self.Proxy).json()
@@ -149,7 +162,7 @@ class HPV_1win:
         '''Сбор монет за рефералов'''
 
         URL = self.Domain + 'friends/collect'
-        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA}
+        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA, 'x-user-id': self.TG_ID}
 
         try:
             HPV = post(URL, headers=Headers, proxies=self.Proxy).json()['coinsCollected']
@@ -164,7 +177,7 @@ class HPV_1win:
         '''Получение ежедневной награды'''
 
         URL = self.Domain + 'tasks/everydayreward'
-        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA}
+        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA, 'x-user-id': self.TG_ID}
 
         try:
             HPV = post(URL, headers=Headers, proxies=self.Proxy).json()['collectedCoins']
@@ -184,11 +197,34 @@ class HPV_1win:
 
 
 
-    def Get_ID_Card(self, ID: str) -> dict:
+    def Get_Cards(self) -> list:
+        '''Список всех кард'''
+
+        URL = 'https://cryptocklicker-frontend-rnd-prod.100hp.app/assets/clicker-config-v-3-BmW6CR9W.js'
+
+        try:
+            HPV = get(URL, proxies=self.Proxy).text.split('const e=[')[1].split('],i=[{id:')[0].split('{id:"')[1:]
+
+            def Clean(ID: str) -> str:
+                return sub(r'\d', '', ID) if search(r'\d', ID) else ID
+
+            CARDS = []
+            for Card in HPV:
+                Card = Clean(Card.split('",name:"')[0])
+                if Card not in CARDS:
+                    CARDS.append(Card)
+
+            return CARDS
+        except:
+            return []
+
+
+
+    def Get_Card_ID(self, ID: str) -> dict:
         '''Получение ID карточек'''
 
         URL = self.Domain + 'minings'
-        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA}
+        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA, 'x-user-id': self.TG_ID}
 
         try:
             HPV = get(URL, headers=Headers, proxies=self.Proxy).json()
@@ -207,7 +243,7 @@ class HPV_1win:
         '''Апгрейд карточек'''
 
         URL = self.Domain + 'minings'
-        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA}
+        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA, 'x-user-id': self.TG_ID}
         Json = {'id': ID}
 
         try:
@@ -222,7 +258,7 @@ class HPV_1win:
         '''Совершение тапов'''
 
         URL = self.Domain + 'tap'
-        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA}
+        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA, 'x-user-id': self.TG_ID}
         Json = {'tapsCount': randint(COINS[0], COINS[1])}
 
         try:
@@ -230,6 +266,34 @@ class HPV_1win:
             self.Logging('Success', self.Name, '🟢', 'Тап совершён!')
         except:
             self.Logging('Error', self.Name, '🔴', 'Не удалось тапнуть!')
+
+
+
+    def Get_Boosts(self) -> list:
+        '''Получение списка доступных бустов'''
+
+        URL = self.Domain + 'energy/improvements'
+        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA, 'x-user-id': self.TG_ID}
+
+        try:
+            return [{'ID': Card['id'], 'LVL': Card['level']} for Card in get(URL, headers=Headers, proxies=self.Proxy).json()]
+        except:
+            return []
+
+
+
+    def Update_Boosts(self, ID: str) -> bool:
+        '''апдейт буста'''
+
+        URL = self.Domain + 'energy/improvements'
+        Headers = {'accept': '*/*', 'accept-language': 'ru,en;q=0.9,uz;q=0.8', 'authorization': f'Bearer {self.Token}', 'content-type': 'application/json', 'origin': 'https://cryptocklicker-frontend-rnd-prod.100hp.app', 'priority': 'u=1, i', 'referer': 'https://cryptocklicker-frontend-rnd-prod.100hp.app/', 'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'same-site', 'user-agent': self.UA, 'x-user-id': self.TG_ID}
+        Json = {'id': ID}
+
+        try:
+            post(URL, headers=Headers, json=Json, proxies=self.Proxy).json()['NextLevel']
+            return True
+        except:
+            return False
 
 
 
@@ -257,15 +321,30 @@ class HPV_1win:
                         sleep(randint(33, 103)) # Промежуточное ожидание
 
 
+                    # Улучшение бустов
+                    for Boost in self.Get_Boosts():
+                        # Улучшение `Запас энергии` буста (максимальная ёмкость энергии)
+                        if 'energylimit' in Boost['ID'] and Boost['LVL'] < MAX_ENERGY_LIMIT:
+                            if self.Update_Boosts(Boost['ID']):
+                                self.Logging('Success', self.Name, '⚡️', 'Буст `Запас энергии` улучшен!')
+                                sleep(randint(33, 103)) # Промежуточное ожидание
+
+                        # Улучшение `Восстановление энергии` буста (скорость восстановления энергии)
+                        if 'energyregen' in Boost['ID'] and Boost['LVL'] < MAX_ENERGY_REGEN:
+                            if self.Update_Boosts(Boost['ID']):
+                                self.Logging('Success', self.Name, '⚡️', 'Буст `Восстановление энергии` улучшен!')
+                                sleep(randint(33, 103)) # Промежуточное ожидание
+
+
                     # Апгрейд всех карточек до максимально возможно уровня
-                    CARD_IDS = ['coinflip', 'Mines', 'Bombucks', 'Tower', 'Double', 'RoyalMines', 'LuckyLoot', 'BrawlPirates', 'AnubisPlinko', 'RocketX', 'SpeednCash', 'RocketQueen', 'LuckyJet']
                     Updates = {}
+                    CARDS = self.Get_Cards()
                     while True:
                         # Остановка цикла, если все карточки улучшены (или нет) до максимально возможно уровня
-                        if all(Updates) and len(Updates) == 13: break
+                        if all(Updates) and len(Updates) == len(CARDS): break
 
-                        for CARD in CARD_IDS:
-                            CARD_ID = self.Get_ID_Card(CARD) 
+                        for CARD in CARDS:
+                            CARD_ID = self.Get_Card_ID(CARD) 
                             if CARD_ID['Current'] < MAX_LVL:
                                 if self.Upgrade_Card(CARD_ID['New']):
                                     self.Logging('Success', self.Name, '🟢', f'Апгрейд {CARD} успешен! Новый уровень: {CARD_ID["New"][-1]}')
@@ -285,13 +364,13 @@ class HPV_1win:
                         sleep(randint(4, 8)) # Промежуточное ожидание
 
 
-                    Waiting = randint(6_500, 7_500) # Значение времени в секундах для ожидания
+                    Waiting = randint(4_000, 11_000) # Значение времени в секундах для ожидания
                     Waiting_STR = (datetime.now() + timedelta(seconds=Waiting)).strftime('%Y-%m-%d %H:%M:%S') # Значение времени в читаемом виде
 
                     self.Logging('Success', self.Name, '💰', f'Баланс: {self.Get_Info()["Balance"]} /// Прибыль в час: {self.Get_Info()["Hour_Profit"]} /// Сила клика: {self.Get_Info()["Click_Power"]}')
                     self.Logging('Warning', self.Name, '⏳', f'Следующий сбор наград: {Waiting_STR}!')
 
-                    sleep(Waiting) # Ожидание около двух часов
+                    sleep(Waiting) # Ожидание от 1 до 3 часов
                     self.ReAuthentication() # Повторная аутентификация аккаунта
 
                 else: # Если аутентификация не успешна
@@ -323,11 +402,14 @@ if __name__ == '__main__':
         print(Time + DIVIDER + '🌐' + DIVIDER + Text)
         sleep(5)
 
-    for Account, URL in HPV_Get_Accounts().items():
-        if Proxy:
-            Proxy = cycle(Proxy)
-            Thread(target=Start_Thread, args=(Account, URL, next(Proxy),)).start()
-        else:
-            Thread(target=Start_Thread, args=(Account, URL,)).start()
+    try:
+        for Account, URL in HPV_Get_Accounts().items():
+            if Proxy:
+                Proxy = cycle(Proxy)
+                Thread(target=Start_Thread, args=(Account, URL, next(Proxy),)).start()
+            else:
+                Thread(target=Start_Thread, args=(Account, URL,)).start()
+    except:
+        print(Fore.RED + '\n\tОшибка чтения `HPV_Account.json`, ссылки указаны некорректно!')
 
 
